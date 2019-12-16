@@ -10,55 +10,64 @@ size = 1000
 sims = 1000
 
 ## Simulated measurements 
-n_OCL = 0.0 # number of values out of control limits 
+n_OCL = 0.0 # number fof values out of control limits 
 FalseAlarmRate = np.ndarray(sims)
 
-def get_AR(phi_,mean_, size_):
-	ar_ = np.random.normal(0, stdDev, size_)
-	ar_[0] = mean_ + ar_[0]
-	for i in range(1,size):
-		ar_[i] = ar_[i-1]*phi_ + mean_ + ar_[i]
-	return ar_
+def get_AR(_phi,_mean, _size):
+	_ar = np.random.normal(0, stdDev, _size)
+	_ar[0] = _mean + _ar[0]
+	for i in range(1,_size):
+		_ar[i] = _ar[i-1]*_phi + _mean + _ar[i]
+	return _ar
 
 
-UCL = mean+3*stdDev
-LCL = mean-3*stdDev
+ucl = mean+3*stdDev
+lcl = mean-3*stdDev
 
-for sims_ in range(sims):
+PHI = np.arange(0,1,0.01)
+FalseAlarms = np.ndarray(PHI.size)
 
-	n_OCL = 0
-	T = np.arange(size)
-	# X = np.random.normal(mean, stdDev, size)
-	X = get_AR(0.00, mean, size)
+for phi_ in range(PHI.size):
 
-	for i_ in range(size):
-		if( X[i_] > UCL or X[i_] < LCL ):
-			# print("index ", i_ , " is OCL\n")
-			n_OCL = n_OCL + 1.0 
+	for sims_ in range(sims):
+		n_OCL = 0
+		T = np.arange(size)
+		# X = np.random.normal(mean, stdDev, size)
+		X = get_AR(PHI[phi_], mean, size)
 
-	FalseAlarmRate[sims_] = n_OCL/(size*1.0)
-	
-	UCL_arr = np.ndarray(size) 
-	UCL_arr.fill(UCL)
-	LCL_arr = np.ndarray(size)
-	LCL_arr.fill(LCL)
-	if(sims_==0):
-		plt.plot(T,LCL_arr)
-		plt.plot(T,UCL_arr)
-		plt.plot(T,X)
-		plt.show()
+		for i_ in range(size):
+			if( X[i_] > ucl or X[i_] < lcl ):
+				# print("index ", i_ , " is OCL\n")
+				n_OCL = n_OCL + 1.0 
 
-meanFalseAlarmRate = np.mean(FalseAlarmRate)
-print(meanFalseAlarmRate)
+		FalseAlarmRate[sims_] = n_OCL/(size*1.0)
+		
+		UCL_arr = np.ndarray(size) 
+		UCL_arr.fill(ucl)
+		LCL_arr = np.ndarray(size)
+		LCL_arr.fill(lcl)
+		# if(sims_==0):
+		# 	plt.plot(T,LCL_arr)
+		# 	plt.plot(T,UCL_arr)
+		# 	plt.plot(T,X)
+		# 	plt.show()
 
-hist, bin_edges = scipy.histogram(FalseAlarmRate, bins = 100)
-# plotting the histogram 
-plt.bar(bin_edges[:-1], hist, width = 0.0001) 
-plt.xlim(min(bin_edges), max(bin_edges)) 
-plt.show() 
-# print(FalseAlarmRate)
+	meanFalseAlarmRate = np.mean(FalseAlarmRate)
+	print(meanFalseAlarmRate)
+	FalseAlarms[phi_] = meanFalseAlarmRate
+
+plt.plot(PHI, FalseAlarms)
 plt.show()
+np.savetxt("phi_falsealarms.csv", np.vstack((PHI,FalseAlarms)).T, delimiter=',')
 
-
+# hist, bin_edges = scipy.histogram(FalseAlarmRate, bins = 100)
+# # plotting the histogram 
+# plt.bar(bin_edges[:-1], hist, width = 0.0001) 
+# plt.xlim(min(bin_edges), max(bin_edges)) 
+# plt.show() 
+# # print(FalseAlarmRate)
 # plt.show()
+
+
+# # plt.show()
 
