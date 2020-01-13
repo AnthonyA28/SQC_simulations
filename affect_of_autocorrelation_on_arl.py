@@ -1,53 +1,67 @@
-def get_num_OCL(_X, _ucl, _lcl):
-    _n_OCL = 0
-    for i in range(_X.size):
-        if( _X[i] >= _ucl or _X[i] <= _lcl ):
-            _n_OCL = _n_OCL + 1.0 
-    return _n_OCL
+import numpy as np
+import matplotlib.pyplot as plt
 
-def get_mean(_X):
-    _sum = 0
-    _n = 0
-    for x in _X:
-        _sum = _sum + x
-        _n =_n + 1
-    return (_sum/_n)
+''' Returns the amount of point in X outisde of the control limits of ucl and lcl '''
+def get_mean(X):
+    summ = 0
+    n = 0
+    for x in X:
+        summ = summ + x
+        n =n + 1
+    return (summ/n)
 
-def get_sample_std_dev(_X):
-    _mean = get_mean(_X)
-    _sumSqr = 0
-    _n = 0
-    for x in _X:
-        _sumSqr = _sumSqr + (x - _mean)*(x - _mean)
-        _n = _n + 1
-    return (_sumSqr/(_n-1))**0.5
+def get_sample_stdDev(X):
+    mean = get_mean(X)
+    sumSqr = 0
+    n = 0
+    for x in X:
+        sumSqr = sumSqr + (x - mean)*(x - mean)
+        n = n + 1
+    return (sumSqr/(n-1))**0.5
 
+def get_MR(X):
+    MR = np.zeros(X.size-1)
+    for i in range(X.size-1):
+        MR[i] = abs(X[i+1]- X[i])
+    assert(X.size - 1 == MR.size)
+    return MR
+                    
 def get_AR(phi,_mean, _size):
-    X = np.random.normal(0, stdDev, _size)
+    X = np.random.normal(0, 1, _size)
     X[0] = _mean/(1-phi) + X[0]
     for i in range(1,_size):
         X[i] = X[i-1]*phi + _mean + X[i]
     return X
 
+def get_next_AR(phi, _mean, prev):
+    return prev*phi + _mean + np.random.normal(0,1)
 
 
 """ Input parameters  """
-mean = 0
-stdDev = 5
-size = 10000
-sims = 100
-c = 3.00
-phase_1 = 1000
-print("phi, n_OCL, ARL_0")
-for phi in np.linspace(-0.95, 0.95, 30):
-    n_OCL = 0 # number of values out of control limits 
-    n = 0  # total number of data points
-    for sims_ in range(sims):
-        X = get_AR(phi, stdDev, size)
-        mean_est = get_mean(X[:phase_1])
-        stdDev_est = get_sample_std_dev(X[:phase_1])
-        ucl = mean_est+c*stdDev_est
-        lcl = mean_est-c*stdDev_est
-        n = n + size
-        n_OCL = n_OCL + get_num_OCL(X[phase_1:], ucl, lcl)
-    print("%.4f,%.4f,%.4f" % (  phi, n_OCL, n/n_OCL))
+sims = 1000 # the amount of simulations to run
+c = 3.00 # the spread of the control limits
+
+for phi in np.linspace(0, 0.9, 5):
+    for size in [30,50,75,100,200,300,500,1000,2000,10000]:
+        arl_sum = 0 
+        for sim in range(sims):
+            rl      = 0 # The run length for this dataset
+            Xp1     = get_AR(phi, 0, size)  # The phase 1 dataset
+            X_bar   = get_mean(Xp1)
+            MR      = get_MR(Xp1)
+            MR_bar  = get_mean(MR)
+            ucl     = X_bar + 3*MR_bar/1.128
+            lcl     = X_bar - 3*MR_bar/1.128
+            # plt.plot(Xp1)
+            # plt.plot(np.ones(Xp1.size)*ucl)
+            # plt.plot(np.ones(Xp1.size)*lcl)
+            # plt.show()
+            x = Xp1[-1] # set x to the last item in the phase 1 dataset
+            while True:
+                x   = get_next_AR(phi, 0, x)
+                rl  += 1
+                if x > ucl or x < lcl:
+                    break
+            arl_sum += rl
+        # print(arl_sum/sims)
+        print("phi: %.4f, size: %.1f, ARL: %.4f" % (phi, size, arl_sum/sims))
