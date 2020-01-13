@@ -1,13 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-''' Returns the amount of point in X outisde of the control limits of ucl and lcl '''
-def get_num_OCL(X, ucl, lcl):
-    n_OCL = 0
-    for i in range(X.size):
-        if( X[i] >= ucl or X[i] <= lcl ):
-            n_OCL = n_OCL + 1
-    return n_OCL
+
 
 def get_mean(X):
     summ = 0
